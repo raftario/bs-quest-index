@@ -30,7 +30,7 @@ async fn main() -> anyhow::Result<()> {
 
     let pool = db::connect(&config.database_url).await?;
 
-    warp::serve(routes::handler(pool).with(warp::trace::request()))
+    warp::serve(routes::handler(pool, config).with(warp::trace::request()))
         .run(([127, 0, 0, 1], config.port))
         .await;
 

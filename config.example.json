@@ -1,5 +1,6 @@
 {
   "port": 8080,
   "database-url": "sqlite://database.db",
+  "downloads-path": "downloads",
   "log-level": "debug"
 }
