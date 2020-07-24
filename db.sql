@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS mods (
     id int NOT NULL,
 
     major int NOT NULL,
