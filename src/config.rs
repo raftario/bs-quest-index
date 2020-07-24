@@ -3,6 +3,7 @@ use std::path::Path;
 use tokio::fs;
 
 #[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Config {
     pub port: u16,
     pub database_url: String,

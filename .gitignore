@@ -1,4 +1,7 @@
 /target/
 
+config.json
+*.db
+
 .idea/
 .vscode/
