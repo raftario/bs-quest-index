@@ -9,10 +9,10 @@ pub fn handler(
     pool: &'static SqlitePool,
     config: &'static Config,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Send + Sync + Clone + 'static {
-    let download = warp::path!("download" / String / Version)
+    let download = warp::path!("mod" / String / Version)
         .and(warp::get())
         .and_then(move |id, ver| download(id, ver, config));
-    let upload = warp::path!("upload" / String / Version)
+    let upload = warp::path!("mod" / String / Version)
         .and(warp::post())
         .and(warp::body::bytes())
         .and_then(move |id, ver, contents| upload(id, ver, contents, pool, config));
@@ -24,7 +24,11 @@ pub fn handler(
         .and(warp::get())
         .and_then(move |id, req| all_matching(id, req, pool));
 
-    (download).or(upload).or(latest_matching).or(all_matching)
+    (download)
+        .or(upload)
+        .or(latest_matching)
+        .or(all_matching)
+        .recover(crate::errors::handle_rejection)
 }
 
 async fn download(id: String, ver: Version, config: &Config) -> Result<impl Reply, Rejection> {

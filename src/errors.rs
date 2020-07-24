@@ -1,9 +1,17 @@
 use std::fmt::Display;
-use warp::reject::{Reject, Rejection};
+use warp::{
+    http::StatusCode,
+    reject::{Reject, Rejection},
+    Reply,
+};
 
 #[derive(Debug)]
 pub struct InternalServerError;
 impl Reject for InternalServerError {}
+
+#[derive(Debug)]
+pub struct NotFound;
+impl Reject for NotFound {}
 
 pub trait TryExt<T> {
     fn or_ise(self) -> Result<T, Rejection>;
@@ -21,7 +29,7 @@ impl<T, E: Display> TryExt<T> for Result<T, E> {
     fn or_nf(self) -> Result<T, Rejection> {
         self.map_err(|e| {
             tracing::info!("{}", e);
-            warp::reject::not_found()
+            warp::reject::custom(NotFound)
         })
     }
 }
@@ -32,6 +40,19 @@ impl<T> TryExt<T> for Option<T> {
     }
 
     fn or_nf(self) -> Result<T, Rejection> {
-        self.ok_or_else(warp::reject::not_found)
+        self.ok_or_else(|| warp::reject::custom(NotFound))
+    }
+}
+
+pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Rejection> {
+    if err.is_not_found() || err.find::<NotFound>().is_some() {
+        Ok(warp::reply::with_status("Not Found", StatusCode::NOT_FOUND))
+    } else if err.find::<InternalServerError>().is_some() {
+        Ok(warp::reply::with_status(
+            "Internal Server Error",
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ))
+    } else {
+        Err(err)
     }
 }
