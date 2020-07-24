@@ -3,5 +3,7 @@ CREATE TABLE IF NOT EXISTS mods (
 
     major int NOT NULL,
     minor int NOT NULL,
-    patch int NOT NULL
+    patch int NOT NULL,
+
+    UNIQUE(id, major, minor, patch)
 )
