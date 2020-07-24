@@ -2,17 +2,7 @@ name: CI
 on: [push, pull_request]
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
-        include:
-          - os: ubuntu-latest
-            bin-path: target/release/filite
-          - os: windows-latest
-            bin-path: target/release/filite.exe
-          - os: macOS-latest
-            bin-path: target/release/filite
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -27,7 +17,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: checks-${{ hashFiles('**/Cargo.lock') }}
+          key: build-${{ hashFiles('**/Cargo.lock') }}
       - name: Build project
         uses: actions-rs/cargo@v1
         with:
