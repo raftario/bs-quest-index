@@ -47,7 +47,7 @@ impl Mod {
     #[tracing::instrument(level = "debug", skip(pool))]
     pub async fn latest_matching(
         id: &str,
-        req: VersionReq,
+        req: &VersionReq,
         pool: &SqlitePool,
     ) -> sqlx::Result<Option<Self>> {
         Self::matching(id, req, pool).next().await.transpose()
@@ -56,15 +56,33 @@ impl Mod {
     #[tracing::instrument(level = "debug", skip(pool))]
     pub async fn all_matching(
         id: &str,
-        req: VersionReq,
+        req: &VersionReq,
         pool: &SqlitePool,
     ) -> sqlx::Result<Vec<Self>> {
         Self::matching(id, req, pool).try_collect().await
     }
 
+    #[tracing::instrument(level = "debug", skip(pool))]
+    pub async fn insert(id: &str, ver: &Version, pool: &SqlitePool) -> sqlx::Result<bool> {
+        let affected =
+            sqlx::query("INSERT OR IGNORE INTO mods (id, major, minor, patch) VALUES (?, ?, ?, ?)")
+                .bind(id)
+                .bind(ver.major as i64)
+                .bind(ver.minor as i64)
+                .bind(ver.patch as i64)
+                .execute(pool)
+                .await?;
+
+        if affected == 0 {
+            Ok(false)
+        } else {
+            Ok(true)
+        }
+    }
+
     fn matching<'e>(
         id: &str,
-        req: VersionReq,
+        req: &'e VersionReq,
         pool: &'e SqlitePool,
     ) -> impl Stream<Item = sqlx::Result<Self>> + 'e {
         sqlx::query_as("SELECT * FROM mods WHERE id = ? ORDER BY major, minor, patch DESC")
