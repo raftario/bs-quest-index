@@ -2,5 +2,8 @@
   "port": 8080,
   "database-url": "database.db",
   "downloads-path": "downloads",
-  "log-level": "debug"
+  "log-level": "debug",
+  "keys": [
+    "password"
+  ]
 }

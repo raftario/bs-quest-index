@@ -5,7 +5,10 @@ use semver::{Version, VersionReq};
 use serde::Deserialize;
 use sqlx::SqlitePool;
 use tokio::fs;
-use warp::{http::StatusCode, Filter, Rejection, Reply};
+use warp::{
+    http::{HeaderValue, StatusCode},
+    Filter, Rejection, Reply,
+};
 
 #[inline]
 fn one() -> usize {
@@ -34,6 +37,7 @@ pub fn handler(
         .and_then(move |id, ver| download(id, ver, config));
     let upload = warp::path!(String / Version)
         .and(warp::post())
+        .and(auth(config))
         .and(warp::body::bytes())
         .and_then(move |id, ver, contents| upload(id, ver, contents, pool, config));
 
@@ -41,6 +45,25 @@ pub fn handler(
         .or(download)
         .or(upload)
         .recover(crate::errors::handle_rejection)
+}
+
+fn auth(
+    config: &'static Config,
+) -> impl Filter<Extract = (), Error = Rejection> + Send + Sync + Clone + 'static {
+    warp::header::optional("Authorization")
+        .and_then(move |k: Option<HeaderValue>| async move {
+            let k = match k {
+                Some(k) => k,
+                None => return Err(warp::reject::custom(crate::errors::Unauthorized)),
+            };
+
+            if config.keys.contains(k.to_str().or_ise()?) {
+                Ok(())
+            } else {
+                Err(warp::reject::custom(crate::errors::Unauthorized))
+            }
+        })
+        .untuple_one()
 }
 
 #[tracing::instrument(level = "debug", skip(pool))]

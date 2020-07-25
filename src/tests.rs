@@ -22,6 +22,7 @@ async fn test() {
         database_url,
         downloads_path,
         log_level: None,
+        keys: vec!["password".to_owned()].into_iter().collect(),
     }));
     let pool = crate::db::connect(&config.database_url).await.unwrap();
 
@@ -32,6 +33,7 @@ async fn test() {
     let reply = warp::test::request()
         .path("/bshook/1.0.0")
         .method("POST")
+        .header("Authorization", "password")
         .body(b"bshook-1.0.0")
         .reply(&routes)
         .await;
@@ -40,6 +42,7 @@ async fn test() {
     let reply = warp::test::request()
         .path("/bshook/1.2.0")
         .method("POST")
+        .header("Authorization", "password")
         .body(b"bshook-1.2.0")
         .reply(&routes)
         .await;
@@ -48,6 +51,7 @@ async fn test() {
     let reply = warp::test::request()
         .path("/hsv/2.3.4")
         .method("POST")
+        .header("Authorization", "password")
         .body(b"hsv-2.3.4")
         .reply(&routes)
         .await;
@@ -58,10 +62,32 @@ async fn test() {
     let reply = warp::test::request()
         .path("/bshook/1.0.0")
         .method("POST")
+        .header("Authorization", "password")
         .body(b"bshook-1.0.0 number two")
         .reply(&routes)
         .await;
     assert_eq!(reply.status(), StatusCode::CONFLICT);
+
+    // Try uploading without a key
+
+    let reply = warp::test::request()
+        .path("/hsv/5.0.0")
+        .method("POST")
+        .body(b"hsv-2.3.4")
+        .reply(&routes)
+        .await;
+    assert_eq!(reply.status(), StatusCode::UNAUTHORIZED);
+
+    // Try uploading with an invalid key
+
+    let reply = warp::test::request()
+        .path("/hsv/5.0.0")
+        .method("POST")
+        .header("Authorization", "not password")
+        .body(b"hsv-2.3.4")
+        .reply(&routes)
+        .await;
+    assert_eq!(reply.status(), StatusCode::UNAUTHORIZED);
 
     // Download a mod
 

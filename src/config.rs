@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use tokio::fs;
 
@@ -9,6 +10,7 @@ pub struct Config {
     pub database_url: String,
     pub downloads_path: PathBuf,
     pub log_level: Option<String>,
+    pub keys: HashSet<String>,
 }
 
 impl Config {
