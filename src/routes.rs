@@ -1,36 +1,71 @@
 use crate::{config::Config, db::Mod, errors::TryExt};
 use bytes::Bytes;
+use futures::{StreamExt, TryStreamExt};
 use semver::{Version, VersionReq};
+use serde::Deserialize;
 use sqlx::SqlitePool;
 use tokio::fs;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
+
+#[inline]
+fn one() -> usize {
+    1
+}
+
+#[derive(Debug, Deserialize)]
+struct ResolveQuery {
+    #[serde(default = "VersionReq::any")]
+    req: VersionReq,
+    #[serde(default = "one")]
+    limit: usize,
+}
 
 pub fn handler(
     pool: &'static SqlitePool,
     config: &'static Config,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Send + Sync + Clone + 'static {
-    let download = warp::path!("mod" / String / Version)
+    let resolve = warp::path!(String)
+        .and(warp::get())
+        .and(warp::query())
+        .and_then(move |id, query| resolve(id, query, pool));
+
+    let download = warp::path!(String / Version)
         .and(warp::get())
         .and_then(move |id, ver| download(id, ver, config));
-    let upload = warp::path!("mod" / String / Version)
+    let upload = warp::path!(String / Version)
         .and(warp::post())
         .and(warp::body::bytes())
         .and_then(move |id, ver, contents| upload(id, ver, contents, pool, config));
 
-    let latest_matching = warp::path!("latest" / String / VersionReq)
-        .and(warp::get())
-        .and_then(move |id, req| latest_matching(id, req, pool));
-    let all_matching = warp::path!("all" / String / VersionReq)
-        .and(warp::get())
-        .and_then(move |id, req| all_matching(id, req, pool));
-
-    (download)
+    resolve
+        .or(download)
         .or(upload)
-        .or(latest_matching)
-        .or(all_matching)
         .recover(crate::errors::handle_rejection)
 }
 
+#[tracing::instrument(level = "debug", skip(pool))]
+async fn resolve(
+    id: String,
+    query: ResolveQuery,
+    pool: &SqlitePool,
+) -> Result<impl Reply, Rejection> {
+    let mut mods = Mod::resolve(&id, &query.req, pool);
+
+    match query.limit {
+        // 1 => last version, found or not found
+        1 => Ok(warp::reply::json(&mods.next().await.or_nf()?.or_ise()?)),
+        // 0 => all versions
+        0 => Ok(warp::reply::json(
+            &mods.try_collect::<Vec<_>>().await.or_ise()?,
+        )),
+        // n => n latest versions
+        n => Ok(warp::reply::json(
+            &mods.take(n).try_collect::<Vec<_>>().await.or_ise()?,
+        )),
+    }
+}
+
+#[tracing::instrument(level = "debug", skip(config))]
 async fn download(id: String, ver: Version, config: &Config) -> Result<impl Reply, Rejection> {
     let contents = fs::read(
         config
@@ -43,6 +78,7 @@ async fn download(id: String, ver: Version, config: &Config) -> Result<impl Repl
     Ok(contents)
 }
 
+#[tracing::instrument(level = "debug", skip(pool, config))]
 async fn upload(
     id: String,
     ver: Version,
@@ -64,22 +100,4 @@ async fn upload(
     fs::write(file, contents).await.or_ise()?;
 
     Ok(warp::reply::with_status("", StatusCode::CREATED))
-}
-
-async fn latest_matching(
-    id: String,
-    req: VersionReq,
-    pool: &SqlitePool,
-) -> Result<impl Reply, Rejection> {
-    let m = Mod::latest_matching(&id, &req, pool).await.or_ise()?;
-    Ok(warp::reply::json(&m.or_nf()?))
-}
-
-async fn all_matching(
-    id: String,
-    req: VersionReq,
-    pool: &SqlitePool,
-) -> Result<impl Reply, Rejection> {
-    let m = Mod::all_matching(&id, &req, pool).await.or_ise()?;
-    Ok(warp::reply::json(&m))
 }

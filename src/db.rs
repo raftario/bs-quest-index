@@ -1,4 +1,4 @@
-use futures::{Stream, StreamExt, TryStreamExt};
+use futures::{Stream, TryStreamExt};
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 use sqlx::{
@@ -44,25 +44,6 @@ impl From<DbMod> for Mod {
 }
 
 impl Mod {
-    #[tracing::instrument(level = "debug", skip(pool))]
-    pub async fn latest_matching(
-        id: &str,
-        req: &VersionReq,
-        pool: &SqlitePool,
-    ) -> sqlx::Result<Option<Self>> {
-        Self::matching(id, req, pool).next().await.transpose()
-    }
-
-    #[tracing::instrument(level = "debug", skip(pool))]
-    pub async fn all_matching(
-        id: &str,
-        req: &VersionReq,
-        pool: &SqlitePool,
-    ) -> sqlx::Result<Vec<Self>> {
-        Self::matching(id, req, pool).try_collect().await
-    }
-
-    #[tracing::instrument(level = "debug", skip(pool))]
     pub async fn insert(id: &str, ver: &Version, pool: &SqlitePool) -> sqlx::Result<bool> {
         let affected =
             sqlx::query("INSERT OR IGNORE INTO mods (id, major, minor, patch) VALUES (?, ?, ?, ?)")
@@ -80,7 +61,7 @@ impl Mod {
         }
     }
 
-    fn matching<'e>(
+    pub fn resolve<'e>(
         id: &str,
         req: &'e VersionReq,
         pool: &'e SqlitePool,

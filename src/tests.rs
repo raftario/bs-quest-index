@@ -30,7 +30,7 @@ async fn test() {
     // Upload some mods
 
     let reply = warp::test::request()
-        .path("/mod/bshook/1.0.0")
+        .path("/bshook/1.0.0")
         .method("POST")
         .body(b"bshook-1.0.0")
         .reply(&routes)
@@ -38,7 +38,7 @@ async fn test() {
     assert_eq!(reply.status(), StatusCode::CREATED);
 
     let reply = warp::test::request()
-        .path("/mod/bshook/1.2.0")
+        .path("/bshook/1.2.0")
         .method("POST")
         .body(b"bshook-1.2.0")
         .reply(&routes)
@@ -46,7 +46,7 @@ async fn test() {
     assert_eq!(reply.status(), StatusCode::CREATED);
 
     let reply = warp::test::request()
-        .path("/mod/hsv/2.3.4")
+        .path("/hsv/2.3.4")
         .method("POST")
         .body(b"hsv-2.3.4")
         .reply(&routes)
@@ -56,7 +56,7 @@ async fn test() {
     // Try uploading a duplicate
 
     let reply = warp::test::request()
-        .path("/mod/bshook/1.0.0")
+        .path("/bshook/1.0.0")
         .method("POST")
         .body(b"bshook-1.0.0 number two")
         .reply(&routes)
@@ -66,7 +66,7 @@ async fn test() {
     // Download a mod
 
     let reply = warp::test::request()
-        .path("/mod/bshook/1.0.0")
+        .path("/bshook/1.0.0")
         .method("GET")
         .reply(&routes)
         .await;
@@ -76,7 +76,7 @@ async fn test() {
     // Try downloading a mod that doesn't exist
 
     let reply = warp::test::request()
-        .path("/mod/bshook/3.0.0")
+        .path("/bshook/3.0.0")
         .method("GET")
         .reply(&routes)
         .await;
@@ -85,7 +85,7 @@ async fn test() {
     // Get the latest version of a mod matching the requirements
 
     let reply = warp::test::request()
-        .path("/latest/bshook/^1")
+        .path("/bshook?req=^1")
         .method("GET")
         .reply(&routes)
         .await;
@@ -101,7 +101,7 @@ async fn test() {
     // Get all the versions of a mod matching the requirements
 
     let reply = warp::test::request()
-        .path("/all/bshook/^1")
+        .path("/bshook?req=^1&limit=0")
         .method("GET")
         .reply(&routes)
         .await;
@@ -123,7 +123,7 @@ async fn test() {
     // Try to get a version of a mod with requirements that can't match
 
     let reply = warp::test::request()
-        .path("/latest/hsv/~3")
+        .path("/hsv?req=~3")
         .method("GET")
         .reply(&routes)
         .await;
