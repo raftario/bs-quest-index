@@ -1,6 +1,7 @@
 /target/
 
 config.json
+.env
 
 .idea/
 .vscode/

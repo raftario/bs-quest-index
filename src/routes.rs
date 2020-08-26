@@ -1,6 +1,5 @@
 use crate::{config::Config, db::Mod, errors::TryExt};
 use bytes::Bytes;
-use futures::{StreamExt, TryStreamExt};
 use semver::{Version, VersionReq};
 use serde::Deserialize;
 use sqlx::SqlitePool;
@@ -27,6 +26,10 @@ pub fn handler(
     pool: &'static SqlitePool,
     config: &'static Config,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Send + Sync + Clone + 'static {
+    let list = warp::path::end()
+        .and(warp::get())
+        .and_then(move || list(pool));
+
     let resolve = warp::path!(String)
         .and(warp::get())
         .and(warp::query())
@@ -41,7 +44,7 @@ pub fn handler(
         .and(warp::body::bytes())
         .and_then(move |id, ver, contents| upload(id, ver, contents, pool, config));
 
-    resolve
+    list.or(resolve)
         .or(download)
         .or(upload)
         .recover(crate::errors::handle_rejection)
@@ -67,23 +70,31 @@ fn auth(
 }
 
 #[tracing::instrument(level = "debug", skip(pool))]
+async fn list(pool: &SqlitePool) -> Result<impl Reply, Rejection> {
+    Ok(warp::reply::json(&Mod::list(pool).await.or_ise()?))
+}
+
+#[tracing::instrument(level = "debug", skip(pool))]
 async fn resolve(
     id: String,
     query: ResolveQuery,
     pool: &SqlitePool,
 ) -> Result<impl Reply, Rejection> {
-    let mut mods = Mod::resolve(&id, &query.req, pool);
-
     match query.limit {
         // 1 => last version, found or not found
-        1 => Ok(warp::reply::json(&mods.next().await.or_nf()?.or_ise()?)),
+        1 => Ok(warp::reply::json(
+            &Mod::resolve_one(&id, &query.req, pool)
+                .await
+                .or_ise()?
+                .or_nf()?,
+        )),
         // 0 => all versions
         0 => Ok(warp::reply::json(
-            &mods.try_collect::<Vec<_>>().await.or_ise()?,
+            &Mod::resolve_all(&id, &query.req, pool).await.or_ise()?,
         )),
         // n => n latest versions
         n => Ok(warp::reply::json(
-            &mods.take(n).try_collect::<Vec<_>>().await.or_ise()?,
+            &Mod::resolve_n(&id, &query.req, pool, n).await.or_ise()?,
         )),
     }
 }

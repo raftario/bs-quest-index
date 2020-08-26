@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS mods (
-    id int NOT NULL,
+    id varchar(64) NOT NULL,
 
     major int NOT NULL,
     minor int NOT NULL,

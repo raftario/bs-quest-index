@@ -4,7 +4,7 @@ use tokio::fs;
 use tracing_subscriber::fmt::format::FmtSpan;
 use warp::http::StatusCode;
 
-#[tokio::test]
+#[tokio::test(threaded_scheduler)]
 async fn test() {
     tracing_subscriber::fmt()
         .with_env_filter("debug")
@@ -154,4 +154,15 @@ async fn test() {
         .reply(&routes)
         .await;
     assert_eq!(reply.status(), StatusCode::NOT_FOUND);
+
+    // List all mods
+    let reply = warp::test::request()
+        .path("/")
+        .method("GET")
+        .reply(&routes)
+        .await;
+    assert_eq!(
+        serde_json::from_slice::<'_, Vec<&str>>(reply.body().as_ref()).unwrap(),
+        vec!["bshook", "hsv"]
+    );
 }
