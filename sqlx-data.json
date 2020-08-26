@@ -1,0 +1,103 @@
+{
+  "db": "SQLite",
+  "36117e0279209eab7b7473ddba10a580c3e125636450f11a2035889249f21e54": {
+    "query": "SELECT * FROM mods WHERE id = ? ORDER BY major DESC, minor DESC, patch DESC",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "major",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "minor",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "patch",
+          "ordinal": 3,
+          "type_info": "Int64"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "3e19a2fd0b7c7caf408b625594ebeb37cbeca461b7789cc9f0aa4154bf22e611": {
+    "query": "SELECT * FROM mods WHERE id = ? ORDER BY major DESC, minor DESC, patch DESC LIMIT 1",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "major",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "minor",
+          "ordinal": 2,
+          "type_info": "Int64"
+        },
+        {
+          "name": "patch",
+          "ordinal": 3,
+          "type_info": "Int64"
+        }
+      ],
+      "parameters": {
+        "Right": 1
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "6ae4fdc267209b8b8de39a9bf03cda3a25356089b500b49e7fdc693c563f8563": {
+    "query": "INSERT OR IGNORE INTO mods (id, major, minor, patch) VALUES (?, ?, ?, ?)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Right": 4
+      },
+      "nullable": []
+    }
+  },
+  "bf05a1b7cface7955f97a7aa935e6a22e76cbc809c04bdd65d7db7a415917e5c": {
+    "query": "SELECT DISTINCT id FROM mods",
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Right": 0
+      },
+      "nullable": [
+        false
+      ]
+    }
+  }
+}
